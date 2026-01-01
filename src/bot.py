@@ -7,7 +7,6 @@ load_dotenv()
 token = os.getenv("discord-token")
 spotify_client_id = os.getenv("spotify-client-id")
 spotify_client_secret = os.getenv("spotify-client-secret")
-
 client_credentials_manager = SpotifyClientCredentials(client_id=spotify_client_id, client_secret=spotify_client_secret)
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
@@ -15,6 +14,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+connection = sqlite3.connect('./db/albums.db')
+cursor = connection.cursor()
 
 @bot.event
 async def on_ready():
@@ -48,15 +50,39 @@ def spotify_search(query):
             'spotify_id': album_data['id']
         }
 
+# randomizer
 
-def main():
-    connection = sqlite3.connect('./db/albums.db')
-    cursor = connection.cursor()
-    print(token)
+# inputter
+
+@bot.command(name='put')
+async def put(ctx, *, album):
+    result = spotify_search(album)
+    if result:
+        message = put_album(result)
+        await ctx.send(message)
+    else:
+        await ctx.send("Album not found on Spotify")
+
+
+def put_album(album):
+    try:
+        cursor.execute(f"""INSERT INTO albums
+                    (spotify_id,
+                    name,
+                    artist,
+                    art_url,
+                    release_date
+                    )
+                       VALUES(?, ?, ?, ?, ?)""", (album["spotify_id"], album["name"], album["artist"], album["album_art"], album["release_date"]))
+        connection.commit()
+        return {"message": f"Successfully added {album['name']}"}
+    except:
+        return {"message": f"error, unable to add the album"}
+    
+# get album
     
 
 
 
 if __name__ == "__main__":
-    main()
     bot.run(token)
