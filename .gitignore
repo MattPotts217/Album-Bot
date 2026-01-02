@@ -2,3 +2,4 @@
 /db
 .env
 .cache
+src/__pycache__
