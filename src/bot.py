@@ -19,6 +19,8 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 connection = sqlite3.connect('./db/albums.db')
 cursor = connection.cursor()
+connection2 = sqlite3.connect('./db/completed.db')
+cursor2 = connection2.cursor()
 
 @bot.event
 async def on_ready():
@@ -54,11 +56,9 @@ def spotify_search(query):
             'spotify_id': album_data['id']
         }
 
-# randomizer
-
 # inputter
-@bot.command(name='put')
-async def put(ctx, *, album):
+@bot.command(name='add')
+async def add(ctx, *, album):
     result = spotify_search(album)
     if result:
         message = put_album(result)
@@ -158,6 +158,29 @@ async def list_albums(ctx):
     view = PaginationView()
     await ctx.send(embed=view.get_page(), view=view)
 
+
+@bot.command(name="completed")
+async def completed(ctx, *, album_name):
+    cursor.execute(f"SELECT * FROM albums WHERE name LIKE ?", (f"%{album_name}%",))
+    album = cursor.fetchone()
+    if album:
+        try:
+            cursor.execute(f"DELETE FROM albums WHERE name LIKE ?", (f"%{album_name}%",))
+            cursor2.execute(f"""INSERT INTO completed
+                        (spotify_id,
+                        name,
+                        artist,
+                        art_url,
+                        release_date
+                        )
+                        VALUES(?, ?, ?, ?, ?)""", (album[1], album[2], album[3], album[4], album[5]))
+            connection.commit()
+            connection2.commit()
+            await ctx.send(f"successfully added {album[2]} to the completed list!")
+        except Exception as e:
+            await ctx.send(f"Unable to add to completed: {e}")
+            connection.rollback()  
+            connection2.rollback()
 
 if __name__ == "__main__":
     bot.run(token)
