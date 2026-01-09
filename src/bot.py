@@ -85,21 +85,17 @@ def put_album(album):
 # get album
 @bot.command(name="get")
 async def get(ctx):
-    cursor.execute(f"SELECT COUNT(*) FROM albums")
-    length = cursor.fetchone()[0]
-    r = random.randint(1, length)
-    cursor.execute(f"""SELECT * FROM albums WHERE album_id = ?""",(r,))
+    cursor.execute("SELECT * FROM albums ORDER BY RANDOM() LIMIT 1")
 
     album = cursor.fetchone()
     if album:
-        results = spotify_search(album[2])
         
         embed = discord.Embed(
-        title=results['name'],
-        description=f"Artist: {results['artist']}",
-        url=results['spotify_url']
+        title=album[2],
+        description=f"Artist: {album[3]}",
+        # url=results['spotify_url']
         )
-        embed.set_image(url=results['album_art'])
+        embed.set_image(url=album[4])
         await ctx.send(embed=embed)
     else:
         await ctx.send("Couldn't find album")
@@ -181,6 +177,59 @@ async def completed(ctx, *, album_name):
             await ctx.send(f"Unable to add to completed: {e}")
             connection.rollback()  
             connection2.rollback()
+
+@bot.command(name="finished")
+async def finished(ctx):
+    cursor2.execute("SELECT name, artist, release_date FROM completed")
+    albums = cursor2.fetchall()
+
+    per_page = 10
+    total_pages = (len(albums) + per_page - 1) // per_page
+    
+    class PaginationView(View):
+        def __init__(self):
+            super().__init__(timeout=60)
+            self.current_page = 0
+        
+        def get_page(self):
+            start = self.current_page * per_page
+            end = start + per_page
+            page_albums = albums[start:end]
+            
+            embed = discord.Embed(
+                title="Albums",
+                description=f"Total albums: {len(albums)}",
+                color=discord.Color.blue()
+            )
+            
+            for i, album in enumerate(page_albums, start=start+1):
+                embed.add_field(
+                    name=f"{i}. {album[0]}",
+                    value=f"by {album[1]}, {album[2]}",
+                    inline=False
+                )
+            
+            embed.set_footer(text=f"Page {self.current_page + 1}/{total_pages}")
+            return embed
+        
+        @discord.ui.button(label="◀", style=discord.ButtonStyle.primary)
+        async def previous_button(self, interaction: discord.Interaction, button: Button):
+            if self.current_page > 0:
+                self.current_page -= 1
+                await interaction.response.edit_message(embed=self.get_page(), view=self)
+            else:
+                await interaction.response.defer()
+        
+        @discord.ui.button(label="▶", style=discord.ButtonStyle.primary)
+        async def next_button(self, interaction: discord.Interaction, button: Button):
+            if self.current_page < total_pages - 1:
+                self.current_page += 1
+                await interaction.response.edit_message(embed=self.get_page(), view=self)
+            else:
+                await interaction.response.defer()
+    
+    view = PaginationView()
+    await ctx.send(embed=view.get_page(), view=view)
 
 if __name__ == "__main__":
     bot.run(token)
