@@ -78,9 +78,9 @@ def put_album(album):
                     )
                        VALUES(?, ?, ?, ?, ?)""", (album["spotify_id"], album["name"], album["artist"], album["album_art"], album["release_date"]))
         connection.commit()
-        return {"message": f"Successfully added {album['name']}"}
+        return f"Successfully added {album['name']}"
     except:
-        return {"message": f"error, unable to add the album"}
+        return f"error, unable to add the album"
     
 # get album
 @bot.command(name="get")
@@ -230,6 +230,16 @@ async def finished(ctx):
     
     view = PaginationView()
     await ctx.send(embed=view.get_page(), view=view)
+
+@bot.command(name="remove")
+async def remove(ctx, *, album_name):
+    try:
+        cursor.execute(f"DELETE FROM albums WHERE name = ?", (album_name,))
+        connection.commit()
+        await ctx.send(f"Successfully removed {album_name}")
+    except Exception as e:
+        print(e)
+        await ctx.send(f"There was a problem removing {album_name}. Did you give the wrong name?")
 
 if __name__ == "__main__":
     bot.run(token)
