@@ -5,9 +5,9 @@ from discord.ext import commands
 from discord.ui import Button, View
 
 load_dotenv()
-token = os.getenv("discord-token")
-spotify_client_id = os.getenv("spotify-client-id")
-spotify_client_secret = os.getenv("spotify-client-secret")
+token = os.getenv("discord_token")
+spotify_client_id = os.getenv("spotify_client_id")
+spotify_client_secret = os.getenv("spotify_client_secret")
 client_credentials_manager = SpotifyClientCredentials(client_id=spotify_client_id, client_secret=spotify_client_secret)
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
