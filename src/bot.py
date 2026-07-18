@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from spotipy.oauth2 import SpotifyClientCredentials
 from discord.ext import commands
 from discord.ui import Button, View
-import random
 
 load_dotenv()
 token = os.getenv("discord-token")
@@ -234,9 +233,12 @@ async def finished(ctx):
 @bot.command(name="remove")
 async def remove(ctx, *, album_name):
     try:
-        cursor.execute(f"DELETE FROM albums WHERE name = ?", (album_name,))
-        connection.commit()
-        await ctx.send(f"Successfully removed {album_name}")
+        cursor.execute("SELECTE * FROM albums WHERE name = ?", album_name)
+        album = cursor.fetchone()
+        if album:
+            cursor.execute(f"DELETE FROM albums WHERE name = ?", album["name"])
+            connection.commit()
+            await ctx.send(f"Successfully removed {album["name"]}")
     except Exception as e:
         print(e)
         await ctx.send(f"There was a problem removing {album_name}. Did you give the wrong name?")
