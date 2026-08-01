@@ -176,6 +176,24 @@ async def completed(ctx, *, album_name):
             await ctx.send(f"Unable to add to completed: {e}")
             connection.rollback()  
             connection2.rollback()
+    else:
+        try:
+            searched_album = spotify_search(album_name)
+            await ctx.send(searched_album)
+            cursor2.execute(f"""INSERT INTO completed
+                            (spotify_id,
+                            name,
+                            artist,
+                            art_url,
+                            release_date
+                            )
+                            VALUES(?, ?, ?, ?, ?)""", (searched_album["spotify_id"], searched_album["name"], searched_album["artist"], searched_album["album_art"], searched_album["release_date"]))
+            connection2.commit()
+            await ctx.send(f"Wasn't able to find {searched_album.name} in list, but added it anyway")
+        except Exception as e:
+            await ctx.send(f"Failed adding album in branch where no album was found: {e}")
+            connection2.rollback()
+        
 
 @bot.command(name="finished")
 async def finished(ctx):
